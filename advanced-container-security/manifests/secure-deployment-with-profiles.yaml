@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secure-webapp-hardened
+  namespace: secure-apps
+  labels:
+    app: secure-webapp-hardened
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: secure-webapp-hardened
+  template:
+    metadata:
+      labels:
+        app: secure-webapp-hardened
+      annotations:
+        container.apparmor.security.beta.kubernetes.io/webapp: localhost/webapp-container
+    spec:
+      securityContext:
+        seccompProfile:
+          type: Localhost
+          localhostProfile: profiles/webapp-seccomp.json
+      containers:
+      - name: webapp
+        image: secure-webapp:v1.0
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 5000
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "250m"
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
+            add:
+            - NET_BIND_SERVICE

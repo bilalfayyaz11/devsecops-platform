@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secure-webapp
+  namespace: secure-apps
+  labels:
+    app: secure-webapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: secure-webapp
+  template:
+    metadata:
+      labels:
+        app: secure-webapp
+    spec:
+      containers:
+      - name: webapp
+        image: secure-webapp:v1.0
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 5000
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "250m"
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: secure-webapp-service
+  namespace: secure-apps
+spec:
+  selector:
+    app: secure-webapp
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 5000
+  type: ClusterIP
