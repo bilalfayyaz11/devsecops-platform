@@ -1,5 +1,7 @@
-# DevSecOps Platform Solutions Portfolio
+# DevSecOps Platform Engineering Portfolio
+
+This repository contains advanced security automation, DevSecOps pipelines, and AIOps implementations designed to secure modern infrastructure and software delivery workflows.
 
 | # | What Was Built | Key Technologies | Level |
 |---|----------------|-----------------|-------|
-| 1 | [Automated IaC Security Guardrails](./automated-iac-security-guardrails) | Terraform, Pulumi, OPA Rego, Checkov | Advanced |
+| 1 | [AI-Driven Vulnerability Prediction Engine](./ai-vulnerability-prediction) | Python, Scikit-learn, Semgrep, Bandit, Gitleaks, CI/CD | Advanced |
