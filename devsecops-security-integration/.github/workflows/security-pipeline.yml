@@ -1,0 +1,15 @@
+name: DevSecOps Security Pipeline
+on: [push, pull_request]
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with: { python-version: '3.9' }
+    - name: Run Scans
+      run: |
+        pip install bandit safety setuptools
+        bandit -r . -f json -o bandit-report.json || true
+        safety check --output json > safety-report.json || true
