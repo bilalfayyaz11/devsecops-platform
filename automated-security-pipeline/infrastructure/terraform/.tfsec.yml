@@ -1,0 +1,7 @@
+severity_overrides:
+  HIGH: ERROR
+  MEDIUM: WARNING
+  LOW: INFO
+
+exclude:
+  - docker-port-exposed-to-internet

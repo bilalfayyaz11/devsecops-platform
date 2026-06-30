@@ -1,0 +1,114 @@
+pipeline {
+    agent any
+    
+    environment {
+        VAULT_ADDR = 'http://localhost:8200'
+        VAULT_TOKEN = credentials('vault-token')
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps { checkout scm }
+        }
+        
+        stage('Security Scan - Secrets') {
+            steps {
+                script {
+                    sh '''
+                        echo "Scanning for secrets in code..."
+                        python3 -m venv venv-truffle
+                        . venv-truffle/bin/activate
+                        pip install --quiet truffleHog3
+                        trufflehog3 --format json --output secrets-report.json ./ || true
+                    '''
+                }
+            }
+        }
+        
+        stage('Static Code Analysis') {
+            parallel {
+                stage('SonarQube Analysis') {
+                    steps {
+                        script {
+                            sh '''
+                                docker run --rm \
+                                    -v $(pwd):/usr/src \
+                                    -w /usr/src \
+                                    --network host \
+                                    sonarsource/sonar-scanner-cli \
+                                    -Dsonar.host.url=http://localhost:9000 \
+                                    -Dsonar.login=admin \
+                                    -Dsonar.password=admin
+                            '''
+                        }
+                    }
+                }
+                stage('Dependency Check') {
+                    steps { sh './scripts/dependency-check.sh' }
+                }
+            }
+        }
+        
+        stage('Build Application') {
+            steps {
+                script {
+                    sh '''
+                        echo "Building application..."
+                        docker build -t devsecops-app:${BUILD_NUMBER} .
+                        docker tag devsecops-app:${BUILD_NUMBER} devsecops-app:latest
+                    '''
+                }
+            }
+        }
+        
+        stage('Infrastructure Validation') {
+            steps { sh './scripts/terraform-validate.sh' }
+        }
+        
+        stage('Policy Validation') {
+            steps { sh './scripts/opa-validate.sh' }
+        }
+        
+        stage('Deploy to Test Environment') {
+            steps {
+                script {
+                    sh '''
+                        cd infrastructure/terraform
+                        terraform apply -auto-approve tfplan
+                    '''
+                }
+            }
+        }
+        
+        stage('Dynamic Security Testing') {
+            steps { sh './scripts/zap-scan.sh' }
+        }
+        
+        stage('Security Report') {
+            steps {
+                script {
+                    sh '''
+                        echo "Generating security report..."
+                        mkdir -p reports/consolidated
+                        cat > reports/consolidated/security-summary.md << 'REPORT_EOF'
+# DevSecOps Security Report
+## Scan Results Summary
+1. Secret Scanning (TruffleHog)
+2. Static Code Analysis (SonarQube)
+3. Dependency Scanning (OWASP)
+4. Infrastructure Security (tfsec)
+5. Dynamic Security Testing (OWASP ZAP)
+6. Policy Compliance (OPA)
+REPORT_EOF
+                    '''
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            archiveArtifacts artifacts: 'reports/**/*', allowEmptyArchive: true
+        }
+    }
+}

@@ -1,0 +1,59 @@
+name: DevSecOps Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies & Scan Secrets
+      run: |
+        python -m venv venv
+        source venv/bin/activate
+        pip install --upgrade pip
+        pip install -r requirements.txt truffleHog3
+        trufflehog3 --format json --output secrets-report.json ./ || true
+    
+    - name: Dependency Check
+      run: |
+        chmod +x scripts/dependency-check.sh
+        ./scripts/dependency-check.sh
+    
+    - name: Build Docker Image
+      run: |
+        docker build -t devsecops-app:${{ github.sha }} .
+    
+    - name: Terraform Security Scan
+      run: |
+        TFSEC_VERSION="1.28.1"
+        wget -q -O tfsec "https://github.com/aquasecurity/tfsec/releases/download/v${TFSEC_VERSION}/tfsec-linux-amd64"
+        sudo mv tfsec /usr/local/bin/
+        chmod +x tfsec
+        chmod +x scripts/terraform-validate.sh
+        ./scripts/terraform-validate.sh
+    
+    - name: OPA Policy Validation
+      run: |
+        wget -q -O opa "https://openpolicyagent.org/downloads/v0.65.0/opa_linux_amd64_static"
+        chmod +x opa
+        sudo mv opa /usr/local/bin/
+        chmod +x scripts/opa-validate.sh
+        ./scripts/opa-validate.sh
+    
+    - name: Upload Security Reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-reports
+        path: reports/
