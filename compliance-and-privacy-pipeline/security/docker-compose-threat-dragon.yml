@@ -1,0 +1,9 @@
+services:
+  threat-dragon:
+    image: owasp/threat-dragon:stable
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./threat-models:/app/threat-models

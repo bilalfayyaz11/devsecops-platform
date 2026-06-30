@@ -1,0 +1,23 @@
+stages:
+  - security-scan
+  - build
+  - test
+  - security-test
+  - deploy
+
+sast:
+  stage: security-scan
+  image: python:3.9
+  script:
+    - pip install bandit safety==2.3.5
+    - bandit -r src/ -f json -o bandit-report.json || true
+    - safety check --json --output safety-report.json || true
+  artifacts:
+    paths: [bandit-report.json, safety-report.json]
+
+security-test:
+  stage: security-test
+  image: python:3.9
+  script:
+    - pip install requests
+    - python security/security_tests.py
