@@ -1,0 +1,8 @@
+name: devsecops-compliance
+title: DevSecOps Demo Compliance Profile
+maintainer: DevSecOps Engineer
+copyright: DevSecOps Lab
+copyright_email: admin@devsecops.local
+license: Apache-2.0
+summary: Security controls for the DevSecOps environment
+version: 1.0.0

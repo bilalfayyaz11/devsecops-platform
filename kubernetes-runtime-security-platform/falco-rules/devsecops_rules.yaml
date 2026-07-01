@@ -1,0 +1,13 @@
+- rule: Suspicious Network Activity in Container
+  desc: Detect suspicious network activity in containers
+  condition: spawned_process and container and (proc.name in (nc, ncat, netcat, wget, curl) and proc.args contains "http")
+  output: Suspicious network activity detected in container (user=%user.name command=%proc.cmdline container=%container.name)
+  priority: WARNING
+  tags: [network, container]
+
+- rule: Container Privilege Escalation
+  desc: Detect privilege escalation attempts in containers
+  condition: spawned_process and container and proc.name in (sudo, su, passwd) and not user.name=root
+  output: Privilege escalation attempt detected (user=%user.name command=%proc.cmdline container=%container.name)
+  priority: CRITICAL
+  tags: [privilege_escalation, container]
